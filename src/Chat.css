@@ -95,3 +95,20 @@
 .emoji {
 	color: yellow;
 }
+
+
+.hatemsg {
+	/* background-color: #ccc;
+	 */
+	 filter: saturate(0.5)brightness(0.9);
+}
+
+.hatemsg button {
+	margin-left: 15px;
+    border: 0px;
+    font-size: 12px;
+    padding: 5px 10px;
+    border-radius: 4px;
+    background-color: white;
+    margin-right: 10px;
+}

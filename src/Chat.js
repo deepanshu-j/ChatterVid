@@ -8,18 +8,21 @@ import db from './firebase';
 
 ///to grab the route param in the url ... in this case /rooms/:roomId  we'll grab roomId///
 import { useParams } from 'react-router-dom';
-import {useStateValue} from './StateProvider';
+import { useStateValue } from './StateProvider';
 
 import firebase from 'firebase';
 
+
+
 function Chat() {
-	const [ input, setInput ] = useState('');
+
+	const [input, setInput] = useState('');
 	// const [ seed, setSeed ] = useState('');
 	const { roomId } = useParams();
-	const [ roomName, setRoomName ] = useState('');
+	const [roomName, setRoomName] = useState('');
 
-	const [ messages, setMessages ] = useState([]);
-	const [{user},dispatch]=useStateValue();
+	const [messages, setMessages] = useState([]);
+	const [{ user }, dispatch] = useStateValue();
 
 
 	useEffect(
@@ -43,7 +46,7 @@ function Chat() {
 					});
 			}
 		},
-		[ roomId ]
+		[roomId]
 	);
 
 	// const createChat = () => {
@@ -57,15 +60,31 @@ function Chat() {
 	const sendMessage = (e) => {
 		e.preventDefault();
 		// console.log('you typed input', input);
-		
-		//add it to the db//
-		db.collection('rooms').doc(roomId).collection('messages').add({
-			message:input,
-			name:user.displayName,
-			timestamp:firebase.firestore.FieldValue.serverTimestamp(),
-		})
-		setInput('');
 
+		// first use message filtering //
+		fetch(
+			`http://localhost:8082/playground/?q=${encodeURIComponent(input)}/`)
+			.catch(err => console.log(err))
+			.then(async (res) => {
+				let isHateMsg = false;
+				// console.log({ 
+				let data = await res.json()
+				//  })
+				if (data.val == 'hate speech') {
+					isHateMsg = true;
+				}
+
+
+				//add it to the db//
+				db.collection('rooms').doc(roomId).collection('messages').add({
+					message: input,
+					name: user.displayName,
+					timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+					ishatemsg: isHateMsg
+				})
+
+				setInput('');
+			})
 	};
 	return (
 		<div className="chat">
@@ -73,7 +92,7 @@ function Chat() {
 				<Avatar src={`https://avatars.dicebear.com/api/human/123}.svg`} />
 				<div className="chat__headerInfo">
 					<p className="chat__headerInfo__p">
-						<b>{roomName}</b> {new Date(messages[messages.length -1 ]?.timestamp?.toDate() ).toUTCString()}
+						<b>{roomName}</b> {new Date(messages[messages.length - 1]?.timestamp?.toDate()).toUTCString()}
 					</p>
 				</div>
 				<div className="chat__headerRight">
@@ -91,18 +110,8 @@ function Chat() {
 
 			<div className="chat__body">
 				{/* {console.log(messages)} */}
-				{messages.map((message) => {
-					return (
-						<p className={`chat__message ${message.name===user.displayName && "chat__receiver"} `}>
-							<span className="chat__name">{message.name}</span>
-							{message.message}
-							<span className="chat__timestamp">
-							{new Date(message.timestamp?.toDate()).toUTCString()}
-
-							</span>
-						</p>
-					);
-				})}
+				{messages.map((message) => <Message message={message} user={user} />
+				)}
 
 				{/* <p className="chat__message">
 					<span className="chat__name">Noni</span>Chat Message
@@ -132,6 +141,40 @@ function Chat() {
 			</div>
 		</div>
 	);
+}
+
+const Message = ({ message, user }) => {
+	const [isHidden, setIsHidden] = useState(true);
+
+	if (isHidden && message.ishatemsg)
+		return <p className={`chat__message hidden hatemsg ${message.name === user.displayName && "chat__receiver"}`}>
+			<span className="chat__name">{message.name}</span>
+			<span>Warning Hate message!
+
+
+			</span>
+			<span className="chat__timestamp">
+				{new Date(message.timestamp?.toDate()).toUTCString()}
+			</span>
+			<button onClick={() => setIsHidden(false)}>view</button>
+		</p>
+	if (!isHidden && message.ishatemsg)
+		return <p className={`chat__message hatemsg ${message.name === user.displayName && "chat__receiver"}`}>
+			<span className="chat__name">{message.name}</span>
+			{message.message}
+			<span className="chat__timestamp">
+				{new Date(message.timestamp?.toDate()).toUTCString()}
+			</span>
+		</p>
+
+	return <p className={`chat__message ${message.name === user.displayName && "chat__receiver"}`}>
+		<span className="chat__name">{message.name}</span>
+		{message.message}
+
+		<span className="chat__timestamp">
+			{new Date(message.timestamp?.toDate()).toUTCString()}
+		</span>
+	</p>
 }
 
 export default Chat;
